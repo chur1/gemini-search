@@ -11,7 +11,7 @@ root_agent = Agent(
     instruction=prompt.ROOT_AGENT_INSTR,
     tools=[
         AgentTool(agent=happy_hour_search_agent),
-        AgentTool(agent=information_check_agent),
+        # AgentTool(agent=information_check_agent),
         AgentTool(agent=json_parser_agent),
     ]
 )

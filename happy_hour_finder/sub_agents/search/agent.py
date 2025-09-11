@@ -24,7 +24,7 @@ json_parser_agent = Agent(
     model="gemini-2.5-flash",
     instruction=prompt.JSON_PARSER_AGENT_INSTR,
     description="Create and persist a structured JSON representation of the happy hour data",
-    output_schema=types.RestaurantInfo,
+    output_schema=types.RestaurantList,
     output_key="itinerary",
     generate_content_config=types.json_response_config,
 )

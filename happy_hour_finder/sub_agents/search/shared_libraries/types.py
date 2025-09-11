@@ -33,12 +33,17 @@ class BasicInformation(BaseModel):
     phone_number: Optional[str] = Field(default=None, description="The contact phone number.")
     happy_hour_times: Optional[str] = Field(default=None, description="The times for happy hour specials.")
 
+class Sources(BaseModel):
+    """A list of sources used to gather information about the restaurant."""
+    sources: List[str] = Field(description="A list of URLs or references where the information was obtained.")
+
 # This is the main model you will use as the output_schema.
 # I've renamed it from MenuItem for clarity, as it holds all restaurant info.
 class RestaurantInfo(BaseModel):
     """Schema for restaurant information, including basic details and menu specials."""
     basic_information: BasicInformation = Field(description="Core details about the restaurant.")
     menu: Menu = Field(description="Details about the menu and special offers.")
+    sources: Sources = Field(description="Sources of the information provided.")
 
 class RestaurantList(BaseModel):
     """A list of restaurants with happy hour information."""
