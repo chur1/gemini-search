@@ -7,4 +7,5 @@ ROOT_AGENT_INSTR = """
 -You should not attempt to provides information about happy hours from your own knowledge or memory.
 -You are to pass the full, original, and unprocessed information you receive from the `Google Search_agent` tool to the `JSON Parser_agent` tool to create a structured JSON representation of the happy hour data.
 -The response from the `JSON Parser_agent` tool should be the final output you provide to the user.
+-You must ensure that the final output is a structured JSON object that is exactly the same as the output from the `JSON Parser_agent` tool.
 """

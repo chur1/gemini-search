@@ -5,7 +5,7 @@ from happy_hour_finder.sub_agents.search.shared_libraries import types
 
 happy_hour_search_agent = LlmAgent(
     name="google_search_agent",
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash",
     instruction=prompt.GOOGLE_HAPPY_HOUR_SEARCH_AGENT_INSTR,
     description="Professional happy hour locator with Google Search capabilities",
     tools=[google_search]
@@ -21,7 +21,7 @@ information_check_agent = LlmAgent(
 
 json_parser_agent = Agent(
     name="json_parser_agent",
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash",
     instruction=prompt.JSON_PARSER_AGENT_INSTR,
     description="Create and persist a structured JSON representation of the happy hour data",
     output_schema=types.RestaurantList,
