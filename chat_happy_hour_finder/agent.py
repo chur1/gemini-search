@@ -1,4 +1,4 @@
-import random, secrets, json
+import random, secrets
 from typing import ClassVar, List
 from google.adk.events import Event, EventActions
 from google.adk.agents import BaseAgent, ParallelAgent, SequentialAgent, Agent
@@ -28,20 +28,6 @@ class Worker(BaseAgent):
             )
             return
         
-        json_schema = """
-        {
-            "restaurant_info": {
-                "restaurant_name": "string",
-                "website": "string",
-                "phone_number": "string",
-                "address": "string",
-                "happy_hour_times": "string"
-            },
-            "deals": { "drinks": [], "food": [] },
-            "sources": []
-        }
-        """
-        
         # Create a search agent with google_search tool
         search_agent = Agent(
             name=f"search_agent_{self._run_id}",
@@ -61,44 +47,34 @@ class Worker(BaseAgent):
                 - Sources: List of URLs where the information was found, including title and link
             
             Focus on finding information from the restaurant's official website or verified sources.
-            Provide response in the following JSON format:
-            {json_schema}
+            Provide a concise summary of the happy hour offerings.
             """
         )
         
-        # # Execute the search
-        # search_query = f"{restaurant_name} happy hour menu official website"
+        # Execute the search
+        search_query = f"{restaurant_name} happy hour menu official website"
         
         try:
-            # Run the search agent and get the raw text output
-            raw_result = ""
+            # Run the search agent
+            search_results = []
             async for event in search_agent.run_async(ctx):
-                if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
-                    for part in event.content.parts:
-                        if hasattr(part, 'text') and part.text:
-                            raw_result = part.text
+                search_results.append(event)
             
-            # Attempt to parse the text as JSON
-            try:
-                # Clean up potential markdown formatting from the LLM
-                if raw_result.strip().startswith("```json"):
-                    raw_result = raw_result.strip()[7:-4]
-                
-                json_result = json.loads(raw_result)
-                final_result = json_result
-                
-            except json.JSONDecodeError:
-                error_msg = f"Error: Failed to decode JSON from the model's response for {restaurant_name}."
-                final_result = {"error": error_msg, "response": raw_result}
-
+            # Extract the final result from search events
+            final_result = "No happy hour information found"
+            for event in search_results:
+                if hasattr(event, 'content') and event.content:
+                    if hasattr(event.content, 'parts') and event.content.parts:
+                        for part in event.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                final_result = part.text
+                                break
+            
             yield Event(
                 author=self.name,
-                # ADD THIS CONTENT SECTION:
                 content=types.Content(
-                    parts=[
-                        types.Part(text=f"Found result for {restaurant_name}:"),
-                        types.Part(text=json.dumps(final_result, indent=2))
-                    ]
+                    role=self.name,
+                    parts=[types.Part(text=f"Happy hour search for {restaurant_name}: {final_result}")]
                 ),
                 actions=EventActions(
                     state_delta={f"happy_hour_result:{self._run_id}:{self.name}": final_result}
@@ -236,27 +212,39 @@ class Aggregator(BaseAgent):
         # 1. Directly get the list of workers for this run
         worker_list = ctx.session.state.get(f"workers:{run_id}", [])
         
-        # This will be a list of JSON objects
-        happy_hour_results = []
-        
+        happy_hour_results = {}
+        # 2. Loop through the small, known list of workers
         for worker_name in worker_list:
+            # 3. Perform direct lookups for data - no scanning needed
+            restaurant_name = ctx.session.state.get(f"restaurant:{run_id}:{worker_name}")
             result = ctx.session.state.get(f"happy_hour_result:{run_id}:{worker_name}")
             
-            # Append the result if it's a valid dictionary (not None or an error string)
-            if isinstance(result, dict) and "error" not in result:
-                happy_hour_results.append(result)
+            if restaurant_name and result:
+                happy_hour_results[restaurant_name] = result
 
-        # Create the final JSON structure
-        final_json_output = {"happy_hour_specials": happy_hour_results}
+        # --- The summary creation logic below remains the same ---
+        if happy_hour_results:
+            summary_parts = ["Happy Hour Search Results Summary:"]
+            for restaurant, result in happy_hour_results.items():
+                summary_parts.append(f"\n--- {restaurant} ---")
+                summary_parts.append(result)
+                summary_parts.append("")  # Add spacing
+            
+            summary_parts.append("\n--- Summary ---")
+            if len(happy_hour_results) > 1:
+                summary_parts.append(f"Found happy hour information for {len(happy_hour_results)} restaurants.")
+                summary_parts.append("Compare the options above to choose the best happy hour deal for your needs.")
+            else:
+                summary_parts.append("Found happy hour information for 1 restaurant.")
+            
+            final_summary = "\n".join(summary_parts)
+        else:
+            final_summary = f"No happy hour results found for run {run_id}. The search may have failed or returned no data."
         
         yield Event(
             author=self.name,
-            # We now output the final JSON as a string for display/storage
-            content=types.Content(role=self.name, parts=[types.Part(text=json.dumps(final_json_output, indent=4))]),
-            actions=EventActions(
-                escalate=True, 
-                state_delta={f"aggregated_summary:{run_id}": final_json_output}
-            )
+            content=types.Content(role=self.name, parts=[types.Part(text=final_summary)]),
+            actions=EventActions(escalate=True, state_delta={f"aggregated_summary:{run_id}": final_summary})
         )
 
 root_agent = SequentialAgent(
