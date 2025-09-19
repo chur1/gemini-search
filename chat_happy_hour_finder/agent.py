@@ -34,7 +34,7 @@ class Worker(BaseAgent):
             model="gemini-2.5-pro",
             tools=[google_search],
             instruction=f"""
-            Search for the official website of {restaurant_name} in New York and find their happy hour menu.
+            Search for the official website of {restaurant_name} in the area the user specifies and find their happy hour menu.
             Look specifically for:
                 - Restaurant Name
                 - Website URL (if available)
@@ -104,7 +104,7 @@ class RestaurantFinder(BaseAgent):
         
         yield Event(
             author=self.name,
-            content=types.Content(parts=[types.Part(text="Searching for restaurants with happy hours in NYC...")])
+            content=types.Content(parts=[types.Part(text="Searching for restaurants with happy hours...")])
         )
         
         # This agent is specialized to find and list restaurants
@@ -113,7 +113,7 @@ class RestaurantFinder(BaseAgent):
             model="gemini-1.5-pro", # Use a powerful model for good extraction
             tools=[google_search],
             instruction="""
-            Search online for blog posts and articles listing restaurants with great happy hours in the financial district of New York Manhattan.
+            Search online for blog posts and articles listing restaurants with great happy hours in the area the user specifies.
             From your search results, compile a list of restaurant names.
             Your final output should ONLY be a comma-separated list of the restaurant names you found.
             For example: 'Restaurant A, Restaurant B, Restaurant C'
